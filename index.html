@@ -119,7 +119,7 @@
         <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
             <h2 class="text-xl font-bold mb-2 text-gray-800">Setup Required</h2>
             <p class="text-gray-600 mb-4 text-sm">Please enter your Google Gemini API Key to start generating cards.</p>
-            <input type="password" id="api-key-input" class="w-full border border-gray-300 p-2 rounded mb-4 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Paste API Key here">
+            <input type="password" id="api-key-input" class="w-full border border-gray-300 p-2 rounded mb-4 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Paste API Key here (starts with AIza...)">
             <button id="save-api-key" class="w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700 transition-colors">Save & Start</button>
             <p class="mt-4 text-xs text-center text-gray-500">
                 Don't have one? <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-600 hover:underline">Get a free key here</a>
@@ -465,7 +465,8 @@
 
         function saveApiKey() {
             const key = apiKeyInput.value.trim();
-            if (key) {
+            // Stricter validation: Google API keys typically start with "AIza"
+            if (key && key.startsWith("AIza")) {
                 apiKey = key;
                 localStorage.setItem('gemini_api_key', apiKey);
                 hideApiKeyModal();
@@ -474,7 +475,7 @@
                     onNextCardClick();
                 }
             } else {
-                alert("Please enter a valid API key.");
+                alert("Ugyldig API-nøkkel. Google Gemini-nøklar startar vanlegvis med 'AIza'. Sjekk at du har kopiert heile nøkkelen og prøv igjen.");
             }
         }
 
@@ -615,6 +616,10 @@
             } catch (error) {
                 if (error.message.includes("Invalid API Key")) {
                     errorMessage.textContent = "Ugyldig API-nøkkel. Sjekk innstillingane.";
+                    // Nøkkelen er bekreftet ugyldig av Google, vi sletter den så brukeren kan prøve på nytt
+                    localStorage.removeItem('gemini_api_key');
+                    apiKey = "";
+                    apiKeyInput.value = "";
                     showApiKeyModal();
                 } else {
                     errorMessage.textContent = "Klarte ikkje å lasta kortet. Prøv igjen.";
@@ -762,65 +767,4 @@
                 nounModeFront.classList.remove('hidden');
                 nounModeBack.classList.remove('hidden');
             } else if (mode === 'adj') {
-                modeAdjBtn.classList.add('bg-blue-100', 'text-blue-700');
-                modeAdjBtn.classList.remove('text-gray-500', 'hover:bg-gray-50');
-                adjModeFront.classList.remove('hidden');
-                adjModeBack.classList.remove('hidden');
-            } else if (mode === 'question') {
-                modeQuestionBtn.classList.add('bg-blue-100', 'text-blue-700');
-                modeQuestionBtn.classList.remove('text-gray-500', 'hover:bg-gray-50');
-                questionModeFront.classList.remove('hidden');
-            }
-        }
-
-        function setMode(mode) {
-            currentMode = mode;
-            updateModeVisibility(mode);
-            nextCardPromise = null; 
-            preloadIndicator.classList.add('hidden');
-            onNextCardClick();
-        }
-
-        async function fetchPracticeSentence() {
-            if (!currentCardData.w1) return;
-            practiceSentenceButton.disabled = true;
-            sentenceButtonText.classList.add('hidden');
-            sentenceSpinner.classList.remove('hidden');
-            sentenceContainer.classList.add('hidden');
-            try {
-                const { nynorskSentence, englishTranslation } = await generatePracticeSentence(currentCardData.w1, currentCardData.w2);
-                nynorskSentenceEl.textContent = nynorskSentence;
-                englishSentenceEl.textContent = englishTranslation;
-                sentenceContainer.classList.remove('hidden');
-            } catch (error) {
-                console.error(error);
-            } finally {
-                practiceSentenceButton.disabled = false;
-                sentenceButtonText.classList.remove('hidden');
-                sentenceSpinner.classList.add('hidden');
-            }
-        }
-
-        // --- Listeners ---
-        card.addEventListener('click', () => card.classList.toggle('is-flipped'));
-        newCardButton.addEventListener('click', onNextCardClick);
-        
-        modeNounBtn.addEventListener('click', () => setMode('noun'));
-        modeAdjBtn.addEventListener('click', () => setMode('adj'));
-        modeQuestionBtn.addEventListener('click', () => setMode('question'));
-        
-        practiceSentenceButton.addEventListener('click', (e) => {
-            e.stopPropagation();
-            fetchPracticeSentence();
-        });
-
-        // Initialize App
-        if (apiKey) {
-            onNextCardClick();
-        } else {
-            showApiKeyModal();
-        }
-
-    </script>
-</body>
-</html>
+                modeAdjBtn.classList.add('bg-blue-100', 'text-blue-70
