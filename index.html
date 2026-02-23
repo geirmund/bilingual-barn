@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Norsk-kort: AI Language Cards</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the 3D card flip */
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Prevent scrolling on mobile if possible for app-like feel */
+            overscroll-behavior: none;
+        }
+
+        /* The 3D scene container */
+        .scene {
+            /* Desktop Defaults */
+            width: 300px;
+            height: 420px;
+            perspective: 1000px;
+        }
+        
+        /* Mobile Responsiveness */
+        @media (max-width: 640px) {
+            .scene {
+                /* Flexible dimensions */
+                width: auto;
+                height: auto;
+                
+                /* Constraints: Never exceed 85% width or 55% height */
+                max-width: 85vw;
+                max-height: 55vh;
+                
+                /* Maintain the 5:7 aspect ratio (300px/420px) */
+                aspect-ratio: 5 / 7;
+                
+                margin: 0 auto;
+            }
+        }
+
+        /* The card itself, which flips */
+        .card {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.7s cubic-bezier(0.25, 0.8, 0.25, 1);
+            cursor: pointer;
+            /* Fix for iOS Safari 3D rendering issues */
+            -webkit-transform: translate3d(0,0,0);
+        }
+
+        /* The .is-flipped class is added by JS to trigger the flip */
+        .card.is-flipped {
+            transform: rotateY(180deg);
+        }
+
+        /* Both faces of the card */
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden; /* Safari */
+            backface-visibility: hidden;
+            border-radius: 1.5rem; /* 24px */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            background-color: white;
+            /* Fix: Force hardware acceleration to prevent 'see-through' mirroring bugs */
+            transform: translateZ(0); 
+        }
+
+        /* The back face, pre-rotated */
+        .card-back {
+            transform: rotateY(180deg) translateZ(0); /* Apply fix here too */
+            background-color: #f3f4f6; /* gray-100 */
+        }
+
+        /* Simple loading spinner */
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #007aff; /* A nice blue */
+            animation: spin 1s ease infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Smaller spinner for buttons */
+        .spinner-small {
+            border: 2px solid rgba(255, 255, 255, 0.3); /* Lighter border for contrast on button */
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border-left-color: #ffffff; /* White */
+            animation: spin 1s ease infinite;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 flex flex-col items-center justify-between min-h-[100dvh] p-4 pb-8 relative overflow-x-hidden">
+
+    <!-- Header Section -->
+    <div class="flex flex-col items-center w-full max-w-md mt-6 sm:mt-0">
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-4">Norsk-kort</h1>
+        
+        <!-- Mode Switcher -->
+        <div class="bg-white p-1 rounded-lg shadow-sm border border-gray-200 flex mb-2 w-full">
+            <button id="mode-noun" class="flex-1 py-2 text-sm font-semibold rounded-md bg-blue-100 text-blue-700 transition-colors duration-200">Substantiv</button>
+            <button id="mode-adj" class="flex-1 py-2 text-sm font-semibold rounded-md text-gray-500 hover:bg-gray-50 transition-colors duration-200 mx-1">Adjektiv</button>
+            <button id="mode-question" class="flex-1 py-2 text-sm font-semibold rounded-md text-gray-500 hover:bg-gray-50 transition-colors duration-200">Spørsmål</button>
+        </div>
+    </div>
+
+    <!-- Main Content (Centered) -->
+    <div class="flex-grow flex flex-col justify-center w-full items-center my-4">
+        <!-- 3D Scene Container -->
+        <div id="card-scene" class="scene">
+            <!-- Card Element -->
+            <div id="card" class="card">
+                
+                <!-- === CARD FRONT === -->
+                <div id="card-front-face" class="card-face flex flex-col border-8 border-transparent">
+                    
+                    <!-- Loading Overlay (Shared) -->
+                    <div id="loading-overlay" class="absolute inset-0 bg-white bg-opacity-90 z-20 flex flex-col items-center justify-center hidden">
+                        <div class="spinner mb-4"></div>
+                        <p id="loading-text" class="text-gray-700 font-medium">Generating card...</p>
+                    </div>
+
+                    <!-- NOUN MODE FRONT -->
+                    <div id="noun-mode-front" class="w-full h-full flex flex-col">
+                        <!-- Image container -->
+                        <div class="w-full h-3/4 bg-gray-200 flex items-center justify-center relative overflow-hidden">
+                            <img id="card-image" src="https://placehold.co/300x315/e2e8f0/a0aec0?text=Loading..." alt="Generated visual" class="w-full h-full object-cover">
+                        </div>
+                        <!-- English Text -->
+                        <div class="w-full h-1/4 flex flex-col items-center justify-center p-4 bg-white">
+                            <p id="english-noun" class="text-xl sm:text-2xl font-semibold capitalize">...</p>
+                            <p id="english-verb" class="text-lg sm:text-xl text-gray-600 capitalize">...</p>
+                        </div>
+                    </div>
+
+                    <!-- ADJECTIVE MODE FRONT -->
+                    <div id="adj-mode-front" class="w-full h-full flex flex-col hidden">
+                        <!-- Top Half: Adj 1 -->
+                        <div class="h-1/2 w-full relative flex flex-col">
+                            <div class="h-4/5 w-full bg-gray-100 overflow-hidden">
+                                <img id="adj-image-1" src="" class="w-full h-full object-cover">
+                            </div>
+                            <div class="h-1/5 w-full bg-blue-50 flex items-center justify-center border-t border-gray-200">
+                                <p id="english-adj-1" class="text-lg sm:text-xl font-bold text-blue-800 capitalize">...</p>
+                            </div>
+                        </div>
+                        <!-- Bottom Half: Adj 2 -->
+                        <div class="h-1/2 w-full relative flex flex-col border-t-4 border-white">
+                            <div class="h-4/5 w-full bg-gray-100 overflow-hidden">
+                                <img id="adj-image-2" src="" class="w-full h-full object-cover">
+                            </div>
+                            <div class="h-1/5 w-full bg-orange-50 flex items-center justify-center border-t border-gray-200">
+                                <p id="english-adj-2" class="text-lg sm:text-xl font-bold text-orange-800 capitalize">...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- QUESTION MODE FRONT (NEW) -->
+                    <div id="question-mode-front" class="w-full h-full flex flex-col hidden">
+                        <!-- The incomplete Norwegian Question (Now on Top) -->
+                        <div class="w-full h-1/3 flex flex-col items-center justify-center p-4 sm:p-6 bg-white text-center border-b border-gray-100 relative z-10">
+                            <p id="question-nynorsk-masked" class="text-xl sm:text-2xl font-bold text-gray-800 leading-snug">...</p>
+                        </div>
+                        <!-- Image of the missing object (Now on Bottom) -->
+                        <div class="w-full h-2/3 bg-gray-200 flex items-center justify-center relative overflow-hidden">
+                            <img id="question-image" src="" class="w-full h-full object-cover">
+                            <div class="absolute bottom-0 w-full bg-gradient-to-t from-black/50 to-transparent p-4 text-white text-center">
+                                <span class="text-sm font-light italic">Kva manglar? (What is missing?)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- === CARD BACK === -->
+                <div class="card-face card-back flex flex-col">
+                    
+                    <!-- Wrapper for Text-Based Backs (Noun/Adj) with Padding/Centering -->
+                    <div id="text-mode-wrapper" class="w-full h-full flex flex-col items-center justify-center p-3 sm:p-4">
+                        
+                        <!-- NOUN MODE BACK -->
+                        <div id="noun-mode-back" class="w-full flex flex-col items-center">
+                            <div class="grid grid-cols-2 gap-x-2 sm:gap-x-3 gap-y-2 w-full text-center mb-2 sm:mb-3">
+                                <div class="text-xs font-semibold text-gray-500">Eintal</div>
+                                <div class="text-xs font-semibold text-gray-500">Fleirtal</div>
+                                
+                                <div class="bg-white p-1 rounded shadow-sm">
+                                    <div class="text-[10px] text-gray-400 uppercase">Ubunden</div>
+                                    <p id="norwegian-singular-indefinite" class="text-sm sm:text-md font-semibold">...</p>
+                                </div>
+                                <div class="bg-white p-1 rounded shadow-sm">
+                                    <div class="text-[10px] text-gray-400 uppercase">Ubunden</div>
+                                    <p id="norwegian-plural-indefinite" class="text-sm sm:text-md font-semibold">...</p>
+                                </div>
+                                
+                                <div class="bg-white p-1 rounded shadow-sm">
+                                    <div class="text-[10px] text-gray-400 uppercase">Bunden</div>
+                                    <p id="norwegian-singular-definite" class="text-sm sm:text-md font-semibold">...</p>
+                                </div>
+                                <div class="bg-white p-1 rounded shadow-sm">
+                                    <div class="text-[10px] text-gray-400 uppercase">Bunden</div>
+                                    <p id="norwegian-plural-definite" class="text-sm sm:text-md font-semibold">...</p>
+                                </div>
+                            </div>
+                            
+                            <hr class="w-3/4 border-gray-300 my-1">
+                            
+                            <div class="w-full text-left px-1 sm:px-2 mt-1 text-xs sm:text-sm">
+                                <div class="flex justify-between mb-1"><span class="text-gray-500">Infinitiv:</span><span id="norwegian-verb-infinitive" class="font-semibold">...</span></div>
+                                <div class="flex justify-between mb-1"><span class="text-gray-500">Presens:</span><span id="norwegian-verb-present" class="font-semibold">...</span></div>
+                                <div class="flex justify-between mb-1"><span class="text-gray-500">Preteritum:</span><span id="norwegian-verb-past" class="font-semibold">...</span></div>
+                                <div class="flex justify-between"><span class="text-gray-500">Pres. Perf.:</span><span id="norwegian-verb-present-perfect" class="font-semibold">...</span></div>
+                            </div>
+                        </div>
+
+                        <!-- ADJECTIVE MODE BACK -->
+                        <div id="adj-mode-back" class="w-full flex flex-col items-center hidden">
+                            <!-- Flag moved here for specific mode -->
+                            <span class="text-3xl sm:text-4xl mb-2" aria-label="Flag of Norway">🇳🇴</span>
+                            <p class="text-xs sm:text-sm text-gray-500 mb-2 italic">Adjektivbøying (Positiv)</p>
+                            
+                            <div class="grid grid-cols-2 gap-2 sm:gap-4 w-full">
+                                <div class="flex flex-col space-y-1 sm:space-y-2 bg-blue-50 p-2 rounded-lg">
+                                    <p id="norwegian-adj-1-base" class="text-md sm:text-lg font-bold text-blue-800 text-center mb-1 border-b border-blue-200 pb-1">...</p>
+                                    <div class="text-[10px] sm:text-xs">
+                                        <span class="text-gray-500 block">M/F:</span>
+                                        <span id="norwegian-adj-1-mf" class="font-medium">...</span>
+                                    </div>
+                                    <div class="text-[10px] sm:text-xs">
+                                        <span class="text-gray-500 block">Nøytrum:</span>
+                                        <span id="norwegian-adj-1-n" class="font-medium">...</span>
+                                    </div>
+                                    <div class="text-[10px] sm:text-xs">
+                                        <span class="text-gray-500 block">Fleirtal:</span>
+                                        <span id="norwegian-adj-1-pl" class="font-medium">...</span>
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-col space-y-1 sm:space-y-2 bg-orange-50 p-2 rounded-lg">
+                                    <p id="norwegian-adj-2-base" class="text-md sm:text-lg font-bold text-orange-800 text-center mb-1 border-b border-orange-200 pb-1">...</p>
+                                    <div class="text-[10px] sm:text-xs">
+                                        <span class="text-gray-500 block">M/F:</span>
+                                        <span id="norwegian-adj-2-mf" class="font-medium">...</span>
+                                    </div>
+                                    <div class="text-[10px] sm:text-xs">
+                                        <span class="text-gray-500 block">Nøytrum:</span>
+                                        <span id="norwegian-adj-2-n" class="font-medium">...</span>
+                                    </div>
+                                    <div class="text-[10px] sm:text-xs">
+                                        <span class="text-gray-500 block">Fleirtal:</span>
+                                        <span id="norwegian-adj-2-pl" class="font-medium">...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Shared Feature: Practice Sentence Button -->
+                        <button id="practice-sentence-button" class="w-full mt-2 sm:mt-4 bg-green-600 text-white text-xs sm:text-sm font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-green-700 disabled:bg-gray-400 flex items-center justify-center h-8 sm:h-9">
+                            <span id="sentence-button-text" class="mr-2">✨ Lag ei setning</span>
+                            <div id="sentence-spinner" class="spinner-small hidden"></div>
+                        </button>
+                        
+                        <!-- Sentence Container -->
+                        <div id="sentence-container" class="w-full text-left p-2 bg-white rounded-lg shadow-sm mt-2 hidden border border-gray-200 overflow-y-auto max-h-[80px]">
+                            <p class="text-[10px] font-medium text-gray-500">Nynorsk:</p>
+                            <p id="nynorsk-sentence" class="text-xs sm:text-sm mb-1 italic">...</p>
+                            <p class="text-[10px] font-medium text-gray-500">Engelsk:</p>
+                            <p id="english-sentence" class="text-[10px] sm:text-xs text-gray-600">...</p>
+                        </div>
+                    </div>
+
+                    <!-- QUESTION MODE BACK (Split Layout) -->
+                    <div id="question-mode-back" class="w-full h-full flex flex-col hidden">
+                        <!-- Top Text Area (Solution) -->
+                        <div class="w-full h-1/3 flex flex-col items-center justify-center p-2 sm:p-4 bg-white text-center border-b border-gray-100 relative z-10">
+                             <span class="text-3xl sm:text-4xl mb-1" aria-label="Flag of Norway">🇳🇴</span>
+                             <p id="question-nynorsk-full" class="text-lg sm:text-xl font-bold text-purple-900 leading-snug">...</p>
+                             <p id="question-english-full" class="text-xs sm:text-sm text-gray-500 italic mt-1">...</p>
+                        </div>
+                        <!-- Bottom Image Area -->
+                        <div class="w-full h-2/3 bg-gray-200 flex items-center justify-center relative overflow-hidden">
+                             <img id="question-image-back" src="" class="w-full h-full object-cover">
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Controls -->
+    <div class="flex flex-col items-center w-full max-w-md">
+        <!-- Control Button -->
+        <button id="new-card-button" class="bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-blue-700 active:bg-blue-800 transform active:scale-95 transition-all duration-150 ease-in-out disabled:bg-gray-400 disabled:cursor-not-allowed w-full relative">
+            <span id="btn-text">Nytt kort</span>
+            <span id="preload-indicator" class="absolute top-2 right-2 w-2 h-2 bg-green-300 rounded-full animate-pulse hidden" title="Next card ready"></span>
+        </button>
+        
+        <!-- Error Message Area -->
+        <p id="error-message" class="text-red-500 mt-2 h-5 text-xs text-center"></p>
+    </div>
+
+    <script type="module">
+        // --- DOM Elements ---
+        const card = document.getElementById('card');
+        const cardFrontFace = document.getElementById('card-front-face');
+        const newCardButton = document.getElementById('new-card-button');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const loadingText = document.getElementById('loading-text');
+        const errorMessage = document.getElementById('error-message');
+        const preloadIndicator = document.getElementById('preload-indicator');
+
+        // Mode Switcher
+        const modeNounBtn = document.getElementById('mode-noun');
+        const modeAdjBtn = document.getElementById('mode-adj');
+        const modeQuestionBtn = document.getElementById('mode-question');
+        
+        // Mode Containers
+        const nounModeFront = document.getElementById('noun-mode-front');
+        const nounModeBack = document.getElementById('noun-mode-back');
+        const adjModeFront = document.getElementById('adj-mode-front');
+        const adjModeBack = document.getElementById('adj-mode-back');
+        const questionModeFront = document.getElementById('question-mode-front');
+        const questionModeBack = document.getElementById('question-mode-back');
+        const textModeWrapper = document.getElementById('text-mode-wrapper');
+
+        // Noun Mode Elements
+        const cardImage = document.getElementById('card-image');
+        const englishNounEl = document.getElementById('english-noun');
+        const englishVerbEl = document.getElementById('english-verb');
+        const norwegianSingularIndefiniteEl = document.getElementById('norwegian-singular-indefinite');
+        const norwegianSingularDefiniteEl = document.getElementById('norwegian-singular-definite');
+        const norwegianPluralIndefiniteEl = document.getElementById('norwegian-plural-indefinite');
+        const norwegianPluralDefiniteEl = document.getElementById('norwegian-plural-definite');
+        const norwegianVerbInfinitiveEl = document.getElementById('norwegian-verb-infinitive');
+        const norwegianVerbPresentEl = document.getElementById('norwegian-verb-present');
+        const norwegianVerbPastEl = document.getElementById('norwegian-verb-past');
+        const norwegianVerbPresentPerfectEl = document.getElementById('norwegian-verb-present-perfect');
+
+        // Adjective Mode Elements
+        const adjImage1 = document.getElementById('adj-image-1');
+        const adjImage2 = document.getElementById('adj-image-2');
+        const englishAdj1El = document.getElementById('english-adj-1');
+        const englishAdj2El = document.getElementById('english-adj-2');
+        const norAdj1Base = document.getElementById('norwegian-adj-1-base');
+        const norAdj1Mf = document.getElementById('norwegian-adj-1-mf');
+        const norAdj1N = document.getElementById('norwegian-adj-1-n');
+        const norAdj1Pl = document.getElementById('norwegian-adj-1-pl');
+        const norAdj2Base = document.getElementById('norwegian-adj-2-base');
+        const norAdj2Mf = document.getElementById('norwegian-adj-2-mf');
+        const norAdj2N = document.getElementById('norwegian-adj-2-n');
+        const norAdj2Pl = document.getElementById('norwegian-adj-2-pl');
+
+        // Question Mode Elements
+        const questionImage = document.getElementById('question-image');
+        const questionImageBack = document.getElementById('question-image-back');
+        const questionNynorskMasked = document.getElementById('question-nynorsk-masked');
+        const questionNynorskFull = document.getElementById('question-nynorsk-full');
+        const questionEnglishFull = document.getElementById('question-english-full');
+
+        // Sentence Elements
+        const practiceSentenceButton = document.getElementById('practice-sentence-button');
+        const sentenceButtonText = document.getElementById('sentence-button-text');
+        const sentenceSpinner = document.getElementById('sentence-spinner');
+        const sentenceContainer = document.getElementById('sentence-container');
+        const nynorskSentenceEl = document.getElementById('nynorsk-sentence');
+        const englishSentenceEl = document.getElementById('english-sentence');
+
+        // --- State ---
+        let currentMode = 'noun'; // 'noun', 'adj', or 'question'
+        let currentCardData = {}; // Data for currently displayed card (for sentence gen)
+        
+        // --- API Configuration ---
+        // Setting apiKey to an empty string ensures the environment auto-injects it correctly.
+        const apiKey = ""; 
+        const textGenerationModel = "gemini-2.5-flash-preview-09-2025";
+        const imageGenerationModel = "imagen-4.0-generate-001";
+        
+        const getTextApiUrl = () => `https://generativelanguage.googleapis.com/v1beta/models/${textGenerationModel}:generateContent?key=${apiKey}`;
+        const getImageApiUrl = () => `https://generativelanguage.googleapis.com/v1beta/models/${imageGenerationModel}:predict?key=${apiKey}`;
+
+        // --- Performance: Preloading State ---
+        let nextCardPromise = null;
+
+        // --- Utility: Fetch with Exponential Backoff ---
+        async function fetchWithBackoff(url, options, maxRetries = 5) {
+            let delay = 1000;
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (response.ok) {
+                        return await response.json();
+                    }
+                    if (i === maxRetries - 1) {
+                        throw new Error(`API Request Failed (${response.status}): ${response.statusText}`);
+                    }
+                } catch (error) {
+                    if (i === maxRetries - 1) {
+                        throw error;
+                    }
+                }
+                await new Promise(resolve => setTimeout(resolve, delay));
+                delay *= 2; // Exponential backoff: 1s, 2s, 4s, 8s, 16s
+            }
+        }
+
+        // --- CORE: Fetch Data Logic (Separated from UI) ---
+        
+        async function fetchCardData(mode) {
+            if (mode === 'noun') {
+                const { noun, verb } = await generateNounVerb();
+                const imagePrompt = `A simple, clear, colorful illustration of a ${noun} ${verb}.`;
+                const [imageData, translation] = await Promise.all([
+                    generateImage(imagePrompt),
+                    translateNounVerb(noun, verb)
+                ]);
+                return { mode: 'noun', noun, verb, imageData, translation };
+                
+            } else if (mode === 'adj') {
+                const { adj1, noun1, adj2, noun2 } = await generateAdjectivePair();
+                const [img1, img2, trans] = await Promise.all([
+                    generateImage(`A simple, colorful illustration of a ${adj1} ${noun1}.`),
+                    generateImage(`A simple, colorful illustration of a ${adj2} ${noun2}.`),
+                    translateAdjectives(adj1, adj2)
+                ]);
+                return { mode: 'adj', adj1, noun1, adj2, noun2, img1, img2, trans };
+
+            } else if (mode === 'question') {
+                const qData = await generateQuestionData();
+                const imgData = await generateImage(`A simple, colorful illustration of a single ${qData.nounEnglish}. Minimalistic style.`);
+                return { mode: 'question', qData, imgData };
+            }
+        }
+
+        // --- CORE: Render Logic (Updates UI from Data) ---
+
+        function renderCard(data) {
+            // Reset borders and states
+            cardFrontFace.classList.remove('border-blue-500', 'border-red-500', 'border-green-500', 'border-gray-400');
+            cardFrontFace.classList.add('border-transparent');
+            sentenceContainer.classList.add('hidden');
+            card.classList.remove('is-flipped');
+            
+            updateModeVisibility(data.mode);
+
+            if (data.mode === 'noun') {
+                cardImage.src = `data:image/png;base64,${data.imageData}`;
+                englishNounEl.textContent = data.noun;
+                englishVerbEl.textContent = data.verb;
+                
+                const t = data.translation;
+                norwegianSingularIndefiniteEl.textContent = t.nounSingularIndefinite;
+                norwegianSingularDefiniteEl.textContent = t.nounSingularDefinite;
+                norwegianPluralIndefiniteEl.textContent = t.nounPluralIndefinite;
+                norwegianPluralDefiniteEl.textContent = t.nounPluralDefinite;
+                
+                norwegianVerbInfinitiveEl.textContent = t.verbInfinitive;
+                norwegianVerbPresentEl.textContent = t.verbPresent;
+                norwegianVerbPastEl.textContent = t.verbPast;
+                norwegianVerbPresentPerfectEl.textContent = t.verbPresentPerfect;
+
+                cardFrontFace.classList.remove('border-transparent');
+                const gender = t.nounGender.toLowerCase();
+                
+                if (gender.includes('masc') || gender.includes('han')) {
+                    cardFrontFace.classList.add('border-blue-500');
+                } else if (gender.includes('fem') || gender.includes('ho')) {
+                    cardFrontFace.classList.add('border-red-500');
+                } else if (gender.includes('neut') || gender.includes('inkje') || gender.includes('intet')) {
+                    cardFrontFace.classList.add('border-green-500');
+                } else {
+                    cardFrontFace.classList.add('border-gray-400');
+                }
+                
+                currentCardData = { w1: t.nounSingularIndefinite, w2: t.verbInfinitive, mode: 'noun' };
+
+            } else if (data.mode === 'adj') {
+                adjImage1.src = `data:image/png;base64,${data.img1}`;
+                englishAdj1El.textContent = data.adj1;
+                adjImage2.src = `data:image/png;base64,${data.img2}`;
+                englishAdj2El.textContent = data.adj2;
+
+                const t = data.trans;
+                norAdj1Base.textContent = t.adj1.base;
+                norAdj1Mf.textContent = t.adj1.mf;
+                norAdj1N.textContent = t.adj1.n;
+                norAdj1Pl.textContent = t.adj1.pl;
+                norAdj2Base.textContent = t.adj2.base;
+                norAdj2Mf.textContent = t.adj2.mf;
+                norAdj2N.textContent = t.adj2.n;
+                norAdj2Pl.textContent = t.adj2.pl;
+                
+                currentCardData = { w1: t.adj1.base, w2: t.adj2.base, mode: 'adj' };
+
+            } else if (data.mode === 'question') {
+                questionImage.src = `data:image/png;base64,${data.imgData}`;
+                questionImageBack.src = `data:image/png;base64,${data.imgData}`;
+                questionNynorskMasked.textContent = data.qData.nynorskMasked;
+                questionNynorskFull.textContent = data.qData.nynorskFull;
+                questionEnglishFull.textContent = data.qData.englishFull;
+                currentCardData = { mode: 'question' };
+            }
+        }
+
+        // --- Main Handler for "New Card" ---
+
+        async function onNextCardClick() {
+            newCardButton.disabled = true;
+            loadingOverlay.classList.remove('hidden');
+            loadingOverlay.classList.add('flex');
+            errorMessage.textContent = '';
+            preloadIndicator.classList.add('hidden');
+
+            try {
+                let data;
+                
+                if (nextCardPromise) {
+                    loadingText.textContent = "Finalizing next card...";
+                    data = await nextCardPromise;
+                    
+                    if (data.mode !== currentMode) {
+                        loadingText.textContent = "Generating card...";
+                        data = await fetchCardData(currentMode);
+                    }
+                } else {
+                    loadingText.textContent = "Generating card...";
+                    data = await fetchCardData(currentMode);
+                }
+
+                renderCard(data);
+
+            } catch (error) {
+                errorMessage.textContent = "Klarte ikkje å lasta kortet. Prøv igjen.";
+                nextCardPromise = null;
+            } finally {
+                newCardButton.disabled = false;
+                loadingOverlay.classList.add('hidden');
+                loadingOverlay.classList.remove('flex');
+                
+                startPreload(currentMode);
+            }
+        }
+
+        function startPreload(mode) {
+            nextCardPromise = fetchCardData(mode).then(data => {
+                if (!newCardButton.disabled) {
+                    preloadIndicator.classList.remove('hidden');
+                }
+                return data;
+            }).catch(e => {
+                return null;
+            });
+        }
+
+        // --- API Implementation Functions ---
+        
+        async function generateNounVerb() {
+            const categories = ['an animal', 'a fruit', 'furniture', 'household item', 'food', 'vehicle', 'clothing', 'tool', 'body part', 'weather', 'insect', 'instrument', 'nature'];
+            const randomCategory = categories[Math.floor(Math.random() * categories.length)];
+            const systemPrompt = "Generate simple, common English nouns and a related verb. Provide only JSON.";
+            const userQuery = `Generate one common noun (${randomCategory}) and one related verb (in -ing form). E.g. dog/barking.`;
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: { responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { "noun": { "type": "STRING" }, "verb": { "type": "STRING" } }, required: ["noun", "verb"] } }
+            };
+            const result = await fetchWithBackoff(getTextApiUrl(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            return JSON.parse(result.candidates[0].content.parts[0].text);
+        }
+
+        async function generateAdjectivePair() {
+            const pairs = [ ['dead', 'alive'], ['few', 'many'], ['far', 'near'], ['first', 'last'], ['fast', 'slow'], ['forward', 'back'], ['front', 'back'], ['happy', 'sad'], ['good', 'bad'], ['high', 'low'], ['inside', 'outside'], ['long', 'short'], ['easy', 'difficult'], ['light', 'dark'], ['soft', 'hard'], ['new', 'old'], ['open', 'closed'], ['up', 'down'], ['top', 'bottom'], ['right', 'wrong'], ['rich', 'poor'], ['same', 'different'], ['dirty', 'clean'], ['kind', 'mean'], ['strong', 'weak'], ['big', 'small'], ['early', 'late'], ['empty', 'full'], ['thin', 'thick'], ['under', 'over'], ['young', 'old'], ['hot', 'cold'], ['wet', 'dry'], ['left', 'right'] ];
+            const selectedPair = pairs[Math.floor(Math.random() * pairs.length)];
+            const adj1 = selectedPair[0];
+            const adj2 = selectedPair[1];
+            const systemPrompt = "You are a creative assistant. I will give you two opposite adjectives. You must provide a concrete, visualizable noun for each that best illustrates the adjective for an image. Provide only JSON.";
+            const userQuery = `The adjectives are '${adj1}' and '${adj2}'. Provide a matching noun for visualization. For example, for 'big/small' you might return 'elephant'/'mouse'.`;
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: { responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { "adj1": { "type": "STRING", "enum": [adj1] }, "noun1": { "type": "STRING" }, "adj2": { "type": "STRING", "enum": [adj2] }, "noun2": { "type": "STRING" } }, required: ["adj1", "noun1", "adj2", "noun2"] } }
+            };
+            const result = await fetchWithBackoff(getTextApiUrl(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            return JSON.parse(result.candidates[0].content.parts[0].text);
+        }
+
+        async function generateQuestionData() {
+            const categories = [
+                'a kitchen utensil', 'a piece of clothing', 'a vehicle', 'a school supply',
+                'a fruit or vegetable', 'a piece of furniture', 'a toy', 'an animal',
+                'a musical instrument', 'a tool', 'an electronic device', 'something found in nature',
+                'a bathroom item', 'a sports equipment'
+            ];
+            const randomCategory = categories[Math.floor(Math.random() * categories.length)];
+
+            const systemPrompt = "You are a Norwegian (Nynorsk) language teacher. Generate simple questions/sentences that feature an Interrogative Pronoun (spørjeord) or a common request pattern. The sentence must involve a concrete physical object (noun) that can be visualized. Provide only JSON.";
+            const userQuery = `Generate a simple question in Nynorsk involving a concrete noun that is ${randomCategory}. Use question words like Kva, Kven, Kor (use 'Kor' instead of 'Kvar'), Korfor (use 'Korfor' instead of 'Kvifor'), Korleis, Når, Kva tid, or 'Kan eg få...'. Return: 1. 'nounEnglish': The concrete noun in English (for image generation). 2. 'nynorskFull': The full question in Nynorsk. 3. 'nynorskMasked': The same question but replace the object/noun with '[...]'. 4. 'englishFull': The English translation of the full question.`;
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: { responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { "nounEnglish": { "type": "STRING" }, "nynorskFull": { "type": "STRING" }, "nynorskMasked": { "type": "STRING" }, "englishFull": { "type": "STRING" } }, required: ["nounEnglish", "nynorskFull", "nynorskMasked", "englishFull"] } }
+            };
+            const result = await fetchWithBackoff(getTextApiUrl(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            return JSON.parse(result.candidates[0].content.parts[0].text);
+        }
+
+        async function generateImage(prompt) {
+            const payload = { instances: [{ "prompt": prompt }], parameters: { "sampleCount": 1 } };
+            const result = await fetchWithBackoff(getImageApiUrl(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (!result.predictions?.[0]?.bytesBase64Encoded) throw new Error("No image");
+            return result.predictions[0].bytesBase64Encoded;
+        }
+
+        async function translateNounVerb(noun, verb) {
+            const systemPrompt = "Translate English to Norwegian (Nynorsk). JSON only.";
+            const userQuery = `Translate: Noun '${noun}', Verb '${verb}'. Provide gender, noun forms (sg/pl, def/indef) and verb forms (inf, pres, past, perf).`;
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: { responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { "nounSingularIndefinite": { "type": "STRING" }, "nounSingularDefinite": { "type": "STRING" }, "nounPluralIndefinite": { "type": "STRING" }, "nounPluralDefinite": { "type": "STRING" }, "nounGender": { "type": "STRING", "description": "Grammatical gender: 'masculine', 'feminine', or 'neuter'" }, "verbInfinitive": { "type": "STRING" }, "verbPresent": { "type": "STRING" }, "verbPast": { "type": "STRING" }, "verbPresentPerfect": { "type": "STRING" } }, required: ["nounSingularIndefinite", "nounSingularDefinite", "nounPluralIndefinite", "nounPluralDefinite", "nounGender", "verbInfinitive", "verbPresent", "verbPast", "verbPresentPerfect"] } }
+            };
+            const result = await fetchWithBackoff(getTextApiUrl(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            return JSON.parse(result.candidates[0].content.parts[0].text);
+        }
+
+        async function translateAdjectives(adj1, adj2) {
+            const systemPrompt = "Translate English adjectives to Norwegian (Nynorsk). JSON only.";
+            const userQuery = `Translate adjectives '${adj1}' and '${adj2}'. Provide all grammatical forms.`;
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: { responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { "adj1": { "type": "OBJECT", "properties": { "base": { "type": "STRING" }, "mf": { "type": "STRING" }, "n": { "type": "STRING" }, "pl": { "type": "STRING" } } }, "adj2": { "type": "OBJECT", "properties": { "base": { "type": "STRING" }, "mf": { "type": "STRING" }, "n": { "type": "STRING" }, "pl": { "type": "STRING" } } } } } }
+            };
+            const result = await fetchWithBackoff(getTextApiUrl(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            return JSON.parse(result.candidates[0].content.parts[0].text);
+        }
+
+        async function generatePracticeSentence(word1, word2) {
+            const systemPrompt = "Generate a simple Nynorsk sentence. Use dialect forms 'Kor' (instead of 'Kvar') and 'Korfor' (instead of 'Kvifor') if creating questions. Provide English translation.";
+            const userQuery = `Make a sentence with '${word1}' or '${word2}' in Nynorsk.`;
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: { responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { "nynorskSentence": { "type": "STRING" }, "englishTranslation": { "type": "STRING" } }, required: ["nynorskSentence", "englishTranslation"] } }
+            };
+            const result = await fetchWithBackoff(getTextApiUrl(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            return JSON.parse(result.candidates[0].content.parts[0].text);
+        }
+
+        // --- Helper: UI Logic for Mode Switching ---
+        function updateModeVisibility(mode) {
+            [modeNounBtn, modeAdjBtn, modeQuestionBtn].forEach(btn => {
+                btn.classList.remove('bg-blue-100', 'text-blue-700');
+                btn.classList.add('text-gray-500', 'hover:bg-gray-50');
+            });
+
+            [nounModeFront, nounModeBack, adjModeFront, adjModeBack, questionModeFront, questionModeBack].forEach(el => el.classList.add('hidden'));
+
+            if (mode === 'question') {
+                practiceSentenceButton.classList.add('hidden');
+                textModeWrapper.classList.add('hidden');
+                questionModeBack.classList.remove('hidden');
+            } else {
+                practiceSentenceButton.classList.remove('hidden');
+                textModeWrapper.classList.remove('hidden');
+                questionModeBack.classList.add('hidden');
+            }
+
+            if (mode === 'noun') {
+                modeNounBtn.classList.add('bg-blue-100', 'text-blue-700');
+                modeNounBtn.classList.remove('text-gray-500', 'hover:bg-gray-50');
+                nounModeFront.classList.remove('hidden');
+                nounModeBack.classList.remove('hidden');
+            } else if (mode === 'adj') {
+                modeAdjBtn.classList.add('bg-blue-100', 'text-blue-700');
+                modeAdjBtn.classList.remove('text-gray-500', 'hover:bg-gray-50');
+                adjModeFront.classList.remove('hidden');
+                adjModeBack.classList.remove('hidden');
+            } else if (mode === 'question') {
+                modeQuestionBtn.classList.add('bg-blue-100', 'text-blue-700');
+                modeQuestionBtn.classList.remove('text-gray-500', 'hover:bg-gray-50');
+                questionModeFront.classList.remove('hidden');
+            }
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            updateModeVisibility(mode);
+            nextCardPromise = null; 
+            preloadIndicator.classList.add('hidden');
+            onNextCardClick();
+        }
+
+        async function fetchPracticeSentence() {
+            if (!currentCardData.w1) return;
+            practiceSentenceButton.disabled = true;
+            sentenceButtonText.classList.add('hidden');
+            sentenceSpinner.classList.remove('hidden');
+            sentenceContainer.classList.add('hidden');
+            try {
+                const { nynorskSentence, englishTranslation } = await generatePracticeSentence(currentCardData.w1, currentCardData.w2);
+                nynorskSentenceEl.textContent = nynorskSentence;
+                englishSentenceEl.textContent = englishTranslation;
+                sentenceContainer.classList.remove('hidden');
+            } catch (error) {
+                console.error(error);
+            } finally {
+                practiceSentenceButton.disabled = false;
+                sentenceButtonText.classList.remove('hidden');
+                sentenceSpinner.classList.add('hidden');
+            }
+        }
+
+        // --- Listeners ---
+        card.addEventListener('click', () => card.classList.toggle('is-flipped'));
+        newCardButton.addEventListener('click', onNextCardClick);
+        
+        modeNounBtn.addEventListener('click', () => setMode('noun'));
+        modeAdjBtn.addEventListener('click', () => setMode('adj'));
+        modeQuestionBtn.addEventListener('click', () => setMode('question'));
+        
+        practiceSentenceButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            fetchPracticeSentence();
+        });
+
+        // Initialize App
+        onNextCardClick();
+
+    </script>
+</body>
+</html>
