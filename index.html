@@ -380,13 +380,19 @@
         const nynorskSentenceEl = document.getElementById('nynorsk-sentence');
         const englishSentenceEl = document.getElementById('english-sentence');
 
+        // Settings Elements
+        const settingsBtn = document.getElementById('settings-button');
+        const apiKeyModal = document.getElementById('api-key-modal');
+        const apiKeyInput = document.getElementById('api-key-input');
+        const saveApiKeyBtn = document.getElementById('save-api-key');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+
         // --- State ---
         let currentMode = 'noun'; // 'noun', 'adj', or 'question'
         let currentCardData = {}; // Data for currently displayed card (for sentence gen)
+        let apiKey = localStorage.getItem('gemini_api_key') || ""; // Load key from storage
         
         // --- API Configuration ---
-        // Setting apiKey to an empty string ensures the environment auto-injects it correctly.
-        const apiKey = ""; 
         const textGenerationModel = "gemini-2.5-flash-preview-09-2025";
         const imageGenerationModel = "imagen-4.0-generate-001";
         
@@ -402,6 +408,12 @@
             for (let i = 0; i < maxRetries; i++) {
                 try {
                     const response = await fetch(url, options);
+                    
+                    // Specific error handling for API keys
+                    if (response.status === 400 || response.status === 401 || response.status === 403) {
+                         throw new Error("Invalid API Key");
+                    }
+                    
                     if (response.ok) {
                         return await response.json();
                     }
@@ -409,6 +421,7 @@
                         throw new Error(`API Request Failed (${response.status}): ${response.statusText}`);
                     }
                 } catch (error) {
+                    if (error.message === "Invalid API Key") throw error; // Don't retry auth errors
                     if (i === maxRetries - 1) {
                         throw error;
                     }
@@ -417,6 +430,35 @@
                 delay *= 2; // Exponential backoff: 1s, 2s, 4s, 8s, 16s
             }
         }
+        
+        // --- API Key Management UI ---
+        function showApiKeyModal() {
+            apiKeyModal.classList.remove('hidden');
+            if (apiKey) apiKeyInput.value = apiKey; // Pre-fill if exists
+        }
+
+        function hideApiKeyModal() {
+            apiKeyModal.classList.add('hidden');
+        }
+
+        function saveApiKey() {
+            const key = apiKeyInput.value.trim();
+            if (key) {
+                apiKey = key;
+                localStorage.setItem('gemini_api_key', apiKey);
+                hideApiKeyModal();
+                // If we were waiting to load, try now
+                if (!currentCardData.mode && !nextCardPromise) {
+                    onNextCardClick();
+                }
+            } else {
+                alert("Please enter a valid API key.");
+            }
+        }
+
+        settingsBtn.addEventListener('click', showApiKeyModal);
+        saveApiKeyBtn.addEventListener('click', saveApiKey);
+        closeModalBtn.addEventListener('click', hideApiKeyModal);
 
         // --- CORE: Fetch Data Logic (Separated from UI) ---
         
@@ -519,6 +561,11 @@
         // --- Main Handler for "New Card" ---
 
         async function onNextCardClick() {
+            if (!apiKey) {
+                showApiKeyModal();
+                return;
+            }
+
             newCardButton.disabled = true;
             loadingOverlay.classList.remove('hidden');
             loadingOverlay.classList.add('flex');
@@ -532,7 +579,7 @@
                     loadingText.textContent = "Finalizing next card...";
                     data = await nextCardPromise;
                     
-                    if (data.mode !== currentMode) {
+                    if (data && data.mode !== currentMode) {
                         loadingText.textContent = "Generating card...";
                         data = await fetchCardData(currentMode);
                     }
@@ -541,10 +588,15 @@
                     data = await fetchCardData(currentMode);
                 }
 
-                renderCard(data);
+                if (data) renderCard(data);
 
             } catch (error) {
-                errorMessage.textContent = "Klarte ikkje å lasta kortet. Prøv igjen.";
+                if (error.message.includes("Invalid API Key")) {
+                    errorMessage.textContent = "Ugyldig API-nøkkel. Sjekk innstillingane.";
+                    showApiKeyModal();
+                } else {
+                    errorMessage.textContent = "Klarte ikkje å lasta kortet. Prøv igjen.";
+                }
                 nextCardPromise = null;
             } finally {
                 newCardButton.disabled = false;
@@ -556,6 +608,8 @@
         }
 
         function startPreload(mode) {
+            if (!apiKey) return;
+            
             nextCardPromise = fetchCardData(mode).then(data => {
                 if (!newCardButton.disabled) {
                     preloadIndicator.classList.remove('hidden');
@@ -739,7 +793,11 @@
         });
 
         // Initialize App
-        onNextCardClick();
+        if (apiKey) {
+            onNextCardClick();
+        } else {
+            showApiKeyModal();
+        }
 
     </script>
 </body>
