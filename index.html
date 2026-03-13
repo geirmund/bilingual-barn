@@ -21,21 +21,21 @@
             height: 420px;
             perspective: 1000px;
         }
-        
+
         /* Mobile Responsiveness */
         @media (max-width: 640px) {
             .scene {
                 /* Flexible dimensions */
                 width: auto;
                 height: auto;
-                
+
                 /* Constraints: Never exceed 85% width or 55% height */
                 max-width: 85vw;
                 max-height: 55vh;
-                
+
                 /* Maintain the 5:7 aspect ratio (300px/420px) */
                 aspect-ratio: 5 / 7;
-                
+
                 margin: 0 auto;
             }
         }
@@ -69,7 +69,7 @@
             overflow: hidden;
             background-color: white;
             /* Fix: Force hardware acceleration to prevent 'see-through' mirroring bugs */
-            transform: translateZ(0); 
+            transform: translateZ(0);
         }
 
         /* The back face, pre-rotated */
@@ -92,7 +92,7 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        
+
         /* Smaller spinner for buttons */
         .spinner-small {
             border: 2px solid rgba(255, 255, 255, 0.3); /* Lighter border for contrast on button */
@@ -118,11 +118,11 @@
     <div id="api-key-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden p-4">
         <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
             <h2 class="text-xl font-bold mb-2 text-gray-800">Setup Required</h2>
-            <p class="text-gray-600 mb-4 text-sm">Please enter your Google Gemini API Key to start generating cards.</p>
-            <input type="password" id="api-key-input" class="w-full border border-gray-300 p-2 rounded mb-4 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Paste API Key here (starts with AIza...)">
+            <p class="text-gray-600 mb-4 text-sm">Please enter your Anthropic API Key to start generating cards.</p>
+            <input type="password" id="api-key-input" class="w-full border border-gray-300 p-2 rounded mb-4 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Paste API Key here (starts with sk-ant-...)">
             <button id="save-api-key" class="w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700 transition-colors">Save & Start</button>
             <p class="mt-4 text-xs text-center text-gray-500">
-                Don't have one? <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-600 hover:underline">Get a free key here</a>
+                Don't have one? <a href="https://console.anthropic.com/settings/keys" target="_blank" class="text-blue-600 hover:underline">Get a key at console.anthropic.com</a>
             </p>
             <button id="close-modal-btn" class="mt-2 w-full text-xs text-gray-400 hover:text-gray-600">Close</button>
         </div>
@@ -131,7 +131,7 @@
     <!-- Header Section -->
     <div class="flex flex-col items-center w-full max-w-md mt-6 sm:mt-0">
         <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-4">Norsk-kort</h1>
-        
+
         <!-- Mode Switcher -->
         <div class="bg-white p-1 rounded-lg shadow-sm border border-gray-200 flex mb-2 w-full">
             <button id="mode-noun" class="flex-1 py-2 text-sm font-semibold rounded-md bg-blue-100 text-blue-700 transition-colors duration-200">Substantiv</button>
@@ -146,10 +146,10 @@
         <div id="card-scene" class="scene">
             <!-- Card Element -->
             <div id="card" class="card">
-                
+
                 <!-- === CARD FRONT === -->
                 <div id="card-front-face" class="card-face flex flex-col border-8 border-transparent">
-                    
+
                     <!-- Loading Overlay (Shared) -->
                     <div id="loading-overlay" class="absolute inset-0 bg-white bg-opacity-90 z-20 flex flex-col items-center justify-center hidden">
                         <div class="spinner mb-4"></div>
@@ -191,7 +191,7 @@
                         </div>
                     </div>
 
-                    <!-- QUESTION MODE FRONT (NEW) -->
+                    <!-- QUESTION MODE FRONT -->
                     <div id="question-mode-front" class="w-full h-full flex flex-col hidden">
                         <!-- The incomplete Norwegian Question (Now on Top) -->
                         <div class="w-full h-1/3 flex flex-col items-center justify-center p-4 sm:p-6 bg-white text-center border-b border-gray-100 relative z-10">
@@ -210,16 +210,16 @@
 
                 <!-- === CARD BACK === -->
                 <div class="card-face card-back flex flex-col">
-                    
+
                     <!-- Wrapper for Text-Based Backs (Noun/Adj) with Padding/Centering -->
                     <div id="text-mode-wrapper" class="w-full h-full flex flex-col items-center justify-center p-3 sm:p-4">
-                        
+
                         <!-- NOUN MODE BACK -->
                         <div id="noun-mode-back" class="w-full flex flex-col items-center">
                             <div class="grid grid-cols-2 gap-x-2 sm:gap-x-3 gap-y-2 w-full text-center mb-2 sm:mb-3">
                                 <div class="text-xs font-semibold text-gray-500">Eintal</div>
                                 <div class="text-xs font-semibold text-gray-500">Fleirtal</div>
-                                
+
                                 <div class="bg-white p-1 rounded shadow-sm">
                                     <div class="text-[10px] text-gray-400 uppercase">Ubunden</div>
                                     <p id="norwegian-singular-indefinite" class="text-sm sm:text-md font-semibold">...</p>
@@ -228,7 +228,7 @@
                                     <div class="text-[10px] text-gray-400 uppercase">Ubunden</div>
                                     <p id="norwegian-plural-indefinite" class="text-sm sm:text-md font-semibold">...</p>
                                 </div>
-                                
+
                                 <div class="bg-white p-1 rounded shadow-sm">
                                     <div class="text-[10px] text-gray-400 uppercase">Bunden</div>
                                     <p id="norwegian-singular-definite" class="text-sm sm:text-md font-semibold">...</p>
@@ -238,9 +238,9 @@
                                     <p id="norwegian-plural-definite" class="text-sm sm:text-md font-semibold">...</p>
                                 </div>
                             </div>
-                            
+
                             <hr class="w-3/4 border-gray-300 my-1">
-                            
+
                             <div class="w-full text-left px-1 sm:px-2 mt-1 text-xs sm:text-sm">
                                 <div class="flex justify-between mb-1"><span class="text-gray-500">Infinitiv:</span><span id="norwegian-verb-infinitive" class="font-semibold">...</span></div>
                                 <div class="flex justify-between mb-1"><span class="text-gray-500">Presens:</span><span id="norwegian-verb-present" class="font-semibold">...</span></div>
@@ -254,7 +254,7 @@
                             <!-- Flag moved here for specific mode -->
                             <span class="text-3xl sm:text-4xl mb-2" aria-label="Flag of Norway">🇳🇴</span>
                             <p class="text-xs sm:text-sm text-gray-500 mb-2 italic">Adjektivbøying (Positiv)</p>
-                            
+
                             <div class="grid grid-cols-2 gap-2 sm:gap-4 w-full">
                                 <div class="flex flex-col space-y-1 sm:space-y-2 bg-blue-50 p-2 rounded-lg">
                                     <p id="norwegian-adj-1-base" class="text-md sm:text-lg font-bold text-blue-800 text-center mb-1 border-b border-blue-200 pb-1">...</p>
@@ -295,7 +295,7 @@
                             <span id="sentence-button-text" class="mr-2">✨ Lag ei setning</span>
                             <div id="sentence-spinner" class="spinner-small hidden"></div>
                         </button>
-                        
+
                         <!-- Sentence Container -->
                         <div id="sentence-container" class="w-full text-left p-2 bg-white rounded-lg shadow-sm mt-2 hidden border border-gray-200 overflow-y-auto max-h-[80px]">
                             <p class="text-[10px] font-medium text-gray-500">Nynorsk:</p>
@@ -331,7 +331,7 @@
             <span id="btn-text">Nytt kort</span>
             <span id="preload-indicator" class="absolute top-2 right-2 w-2 h-2 bg-green-300 rounded-full animate-pulse hidden" title="Next card ready"></span>
         </button>
-        
+
         <!-- Error Message Area -->
         <p id="error-message" class="text-red-500 mt-2 h-5 text-xs text-center"></p>
     </div>
@@ -350,7 +350,7 @@
         const modeNounBtn = document.getElementById('mode-noun');
         const modeAdjBtn = document.getElementById('mode-adj');
         const modeQuestionBtn = document.getElementById('mode-question');
-        
+
         // Mode Containers
         const nounModeFront = document.getElementById('noun-mode-front');
         const nounModeBack = document.getElementById('noun-mode-back');
@@ -410,19 +410,49 @@
         const closeModalBtn = document.getElementById('close-modal-btn');
 
         // --- State ---
-        let currentMode = 'noun'; // 'noun', 'adj', or 'question'
-        let currentCardData = {}; // Data for currently displayed card (for sentence gen)
-        let apiKey = localStorage.getItem('gemini_api_key') || ""; // Load key from storage
-        
+        let currentMode = 'noun';
+        let currentCardData = {};
+        let apiKey = localStorage.getItem('anthropic_api_key') || "";
+
         // --- API Configuration ---
-        const textGenerationModel = "gemini-2.5-flash-preview-09-2025";
-        const imageGenerationModel = "imagen-4.0-generate-001";
-        
-        const getTextApiUrl = () => `https://generativelanguage.googleapis.com/v1beta/models/${textGenerationModel}:generateContent?key=${apiKey}`;
-        const getImageApiUrl = () => `https://generativelanguage.googleapis.com/v1beta/models/${imageGenerationModel}:predict?key=${apiKey}`;
+        const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
+        const MODEL = 'claude-opus-4-6';
 
         // --- Performance: Preloading State ---
         let nextCardPromise = null;
+
+        // --- Utility: Emoji to SVG Data URL ---
+        function emojiToDataUrl(emoji, bgColor = '#f0f4f8') {
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="315"><rect width="300" height="315" fill="${bgColor}"/><text x="150" y="175" font-size="160" text-anchor="middle" dominant-baseline="middle">${emoji}</text></svg>`;
+            return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+        }
+
+        // --- Utility: Call Claude API with JSON Schema Output ---
+        async function callClaude(system, userMessage, schema) {
+            const body = {
+                model: MODEL,
+                max_tokens: 1024,
+                system: system,
+                messages: [{ role: 'user', content: userMessage }],
+                output_config: {
+                    format: {
+                        type: 'json_schema',
+                        schema: { ...schema, additionalProperties: false }
+                    }
+                }
+            };
+            const result = await fetchWithBackoff(CLAUDE_API_URL, {
+                method: 'POST',
+                headers: {
+                    'content-type': 'application/json',
+                    'x-api-key': apiKey,
+                    'anthropic-version': '2023-06-01',
+                    'anthropic-dangerous-direct-browser-access': 'true'
+                },
+                body: JSON.stringify(body)
+            });
+            return JSON.parse(result.content[0].text);
+        }
 
         // --- Utility: Fetch with Exponential Backoff ---
         async function fetchWithBackoff(url, options, maxRetries = 5) {
@@ -430,12 +460,11 @@
             for (let i = 0; i < maxRetries; i++) {
                 try {
                     const response = await fetch(url, options);
-                    
-                    // Specific error handling for API keys
-                    if (response.status === 400 || response.status === 401 || response.status === 403) {
-                         throw new Error("Invalid API Key");
+
+                    if (response.status === 401 || response.status === 403) {
+                        throw new Error("Invalid API Key");
                     }
-                    
+
                     if (response.ok) {
                         return await response.json();
                     }
@@ -443,20 +472,18 @@
                         throw new Error(`API Request Failed (${response.status}): ${response.statusText}`);
                     }
                 } catch (error) {
-                    if (error.message === "Invalid API Key") throw error; // Don't retry auth errors
-                    if (i === maxRetries - 1) {
-                        throw error;
-                    }
+                    if (error.message === "Invalid API Key") throw error;
+                    if (i === maxRetries - 1) throw error;
                 }
                 await new Promise(resolve => setTimeout(resolve, delay));
                 delay *= 2; // Exponential backoff: 1s, 2s, 4s, 8s, 16s
             }
         }
-        
+
         // --- API Key Management UI ---
         function showApiKeyModal() {
             apiKeyModal.classList.remove('hidden');
-            if (apiKey) apiKeyInput.value = apiKey; // Pre-fill if exists
+            if (apiKey) apiKeyInput.value = apiKey;
         }
 
         function hideApiKeyModal() {
@@ -465,17 +492,15 @@
 
         function saveApiKey() {
             const key = apiKeyInput.value.trim();
-            // Stricter validation: Google API keys typically start with "AIza"
-            if (key && key.startsWith("AIza")) {
+            if (key && key.startsWith("sk-ant-")) {
                 apiKey = key;
-                localStorage.setItem('gemini_api_key', apiKey);
+                localStorage.setItem('anthropic_api_key', apiKey);
                 hideApiKeyModal();
-                // If we were waiting to load, try now
                 if (!currentCardData.mode && !nextCardPromise) {
                     onNextCardClick();
                 }
             } else {
-                alert("Ugyldig API-nøkkel. Google Gemini-nøklar startar vanlegvis med 'AIza'. Sjekk at du har kopiert heile nøkkelen og prøv igjen.");
+                alert("Ugyldig API-nøkkel. Anthropic-nøklar startar vanlegvis med 'sk-ant-'. Sjekk at du har kopiert heile nøkkelen og prøv igjen.");
             }
         }
 
@@ -484,30 +509,21 @@
         closeModalBtn.addEventListener('click', hideApiKeyModal);
 
         // --- CORE: Fetch Data Logic (Separated from UI) ---
-        
+
         async function fetchCardData(mode) {
             if (mode === 'noun') {
-                const { noun, verb } = await generateNounVerb();
-                const imagePrompt = `A simple, clear, colorful illustration of a ${noun} ${verb}.`;
-                const [imageData, translation] = await Promise.all([
-                    generateImage(imagePrompt),
-                    translateNounVerb(noun, verb)
-                ]);
-                return { mode: 'noun', noun, verb, imageData, translation };
-                
+                const { noun, verb, emoji } = await generateNounVerb();
+                const translation = await translateNounVerb(noun, verb);
+                return { mode: 'noun', noun, verb, emoji, translation };
+
             } else if (mode === 'adj') {
-                const { adj1, noun1, adj2, noun2 } = await generateAdjectivePair();
-                const [img1, img2, trans] = await Promise.all([
-                    generateImage(`A simple, colorful illustration of a ${adj1} ${noun1}.`),
-                    generateImage(`A simple, colorful illustration of a ${adj2} ${noun2}.`),
-                    translateAdjectives(adj1, adj2)
-                ]);
-                return { mode: 'adj', adj1, noun1, adj2, noun2, img1, img2, trans };
+                const { adj1, noun1, emoji1, adj2, noun2, emoji2 } = await generateAdjectivePair();
+                const trans = await translateAdjectives(adj1, adj2);
+                return { mode: 'adj', adj1, noun1, emoji1, adj2, noun2, emoji2, trans };
 
             } else if (mode === 'question') {
                 const qData = await generateQuestionData();
-                const imgData = await generateImage(`A simple, colorful illustration of a single ${qData.nounEnglish}. Minimalistic style.`);
-                return { mode: 'question', qData, imgData };
+                return { mode: 'question', qData };
             }
         }
 
@@ -519,20 +535,20 @@
             cardFrontFace.classList.add('border-transparent');
             sentenceContainer.classList.add('hidden');
             card.classList.remove('is-flipped');
-            
+
             updateModeVisibility(data.mode);
 
             if (data.mode === 'noun') {
-                cardImage.src = `data:image/png;base64,${data.imageData}`;
+                cardImage.src = emojiToDataUrl(data.emoji);
                 englishNounEl.textContent = data.noun;
                 englishVerbEl.textContent = data.verb;
-                
+
                 const t = data.translation;
                 norwegianSingularIndefiniteEl.textContent = t.nounSingularIndefinite;
                 norwegianSingularDefiniteEl.textContent = t.nounSingularDefinite;
                 norwegianPluralIndefiniteEl.textContent = t.nounPluralIndefinite;
                 norwegianPluralDefiniteEl.textContent = t.nounPluralDefinite;
-                
+
                 norwegianVerbInfinitiveEl.textContent = t.verbInfinitive;
                 norwegianVerbPresentEl.textContent = t.verbPresent;
                 norwegianVerbPastEl.textContent = t.verbPast;
@@ -540,7 +556,7 @@
 
                 cardFrontFace.classList.remove('border-transparent');
                 const gender = t.nounGender.toLowerCase();
-                
+
                 if (gender.includes('masc') || gender.includes('han')) {
                     cardFrontFace.classList.add('border-blue-500');
                 } else if (gender.includes('fem') || gender.includes('ho')) {
@@ -550,13 +566,13 @@
                 } else {
                     cardFrontFace.classList.add('border-gray-400');
                 }
-                
+
                 currentCardData = { w1: t.nounSingularIndefinite, w2: t.verbInfinitive, mode: 'noun' };
 
             } else if (data.mode === 'adj') {
-                adjImage1.src = `data:image/png;base64,${data.img1}`;
+                adjImage1.src = emojiToDataUrl(data.emoji1, '#eff6ff');
                 englishAdj1El.textContent = data.adj1;
-                adjImage2.src = `data:image/png;base64,${data.img2}`;
+                adjImage2.src = emojiToDataUrl(data.emoji2, '#fff7ed');
                 englishAdj2El.textContent = data.adj2;
 
                 const t = data.trans;
@@ -568,12 +584,13 @@
                 norAdj2Mf.textContent = t.adj2.mf;
                 norAdj2N.textContent = t.adj2.n;
                 norAdj2Pl.textContent = t.adj2.pl;
-                
+
                 currentCardData = { w1: t.adj1.base, w2: t.adj2.base, mode: 'adj' };
 
             } else if (data.mode === 'question') {
-                questionImage.src = `data:image/png;base64,${data.imgData}`;
-                questionImageBack.src = `data:image/png;base64,${data.imgData}`;
+                const emojiSrc = emojiToDataUrl(data.qData.emoji);
+                questionImage.src = emojiSrc;
+                questionImageBack.src = emojiSrc;
                 questionNynorskMasked.textContent = data.qData.nynorskMasked;
                 questionNynorskFull.textContent = data.qData.nynorskFull;
                 questionEnglishFull.textContent = data.qData.englishFull;
@@ -597,11 +614,11 @@
 
             try {
                 let data;
-                
+
                 if (nextCardPromise) {
                     loadingText.textContent = "Finalizing next card...";
                     data = await nextCardPromise;
-                    
+
                     if (data && data.mode !== currentMode) {
                         loadingText.textContent = "Generating card...";
                         data = await fetchCardData(currentMode);
@@ -616,8 +633,7 @@
             } catch (error) {
                 if (error.message.includes("Invalid API Key")) {
                     errorMessage.textContent = "Ugyldig API-nøkkel. Sjekk innstillingane.";
-                    // Nøkkelen er bekreftet ugyldig av Google, vi sletter den så brukeren kan prøve på nytt
-                    localStorage.removeItem('gemini_api_key');
+                    localStorage.removeItem('anthropic_api_key');
                     apiKey = "";
                     apiKeyInput.value = "";
                     showApiKeyModal();
@@ -629,14 +645,14 @@
                 newCardButton.disabled = false;
                 loadingOverlay.classList.add('hidden');
                 loadingOverlay.classList.remove('flex');
-                
+
                 startPreload(currentMode);
             }
         }
 
         function startPreload(mode) {
             if (!apiKey) return;
-            
+
             nextCardPromise = fetchCardData(mode).then(data => {
                 if (!newCardButton.disabled) {
                     preloadIndicator.classList.remove('hidden');
@@ -648,35 +664,44 @@
         }
 
         // --- API Implementation Functions ---
-        
+
         async function generateNounVerb() {
             const categories = ['an animal', 'a fruit', 'furniture', 'household item', 'food', 'vehicle', 'clothing', 'tool', 'body part', 'weather', 'insect', 'instrument', 'nature'];
             const randomCategory = categories[Math.floor(Math.random() * categories.length)];
-            const systemPrompt = "Generate simple, common English nouns and a related verb. Provide only JSON.";
-            const userQuery = `Generate one common noun (${randomCategory}) and one related verb (in -ing form). E.g. dog/barking.`;
-            const payload = {
-                contents: [{ parts: [{ text: userQuery }] }],
-                systemInstruction: { parts: [{ text: systemPrompt }] },
-                generationConfig: { responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { "noun": { "type": "STRING" }, "verb": { "type": "STRING" } }, required: ["noun", "verb"] } }
-            };
-            const result = await fetchWithBackoff(getTextApiUrl(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            return JSON.parse(result.candidates[0].content.parts[0].text);
+            return callClaude(
+                "Generate simple, common English nouns and a related verb. Provide only valid JSON.",
+                `Generate one common English noun (category: ${randomCategory}) and one related verb in -ing form (e.g. noun: dog, verb: barking). Also provide a single emoji that visually represents the noun.`,
+                {
+                    type: "object",
+                    properties: {
+                        noun: { type: "string" },
+                        verb: { type: "string" },
+                        emoji: { type: "string", description: "A single emoji representing the noun" }
+                    },
+                    required: ["noun", "verb", "emoji"]
+                }
+            );
         }
 
         async function generateAdjectivePair() {
-            const pairs = [ ['dead', 'alive'], ['few', 'many'], ['far', 'near'], ['first', 'last'], ['fast', 'slow'], ['forward', 'back'], ['front', 'back'], ['happy', 'sad'], ['good', 'bad'], ['high', 'low'], ['inside', 'outside'], ['long', 'short'], ['easy', 'difficult'], ['light', 'dark'], ['soft', 'hard'], ['new', 'old'], ['open', 'closed'], ['up', 'down'], ['top', 'bottom'], ['right', 'wrong'], ['rich', 'poor'], ['same', 'different'], ['dirty', 'clean'], ['kind', 'mean'], ['strong', 'weak'], ['big', 'small'], ['early', 'late'], ['empty', 'full'], ['thin', 'thick'], ['under', 'over'], ['young', 'old'], ['hot', 'cold'], ['wet', 'dry'], ['left', 'right'] ];
-            const selectedPair = pairs[Math.floor(Math.random() * pairs.length)];
-            const adj1 = selectedPair[0];
-            const adj2 = selectedPair[1];
-            const systemPrompt = "You are a creative assistant. I will give you two opposite adjectives. You must provide a concrete, visualizable noun for each that best illustrates the adjective for an image. Provide only JSON.";
-            const userQuery = `The adjectives are '${adj1}' and '${adj2}'. Provide a matching noun for visualization. For example, for 'big/small' you might return 'elephant'/'mouse'.`;
-            const payload = {
-                contents: [{ parts: [{ text: userQuery }] }],
-                systemInstruction: { parts: [{ text: systemPrompt }] },
-                generationConfig: { responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { "adj1": { "type": "STRING", "enum": [adj1] }, "noun1": { "type": "STRING" }, "adj2": { "type": "STRING", "enum": [adj2] }, "noun2": { "type": "STRING" } }, required: ["adj1", "noun1", "adj2", "noun2"] } }
-            };
-            const result = await fetchWithBackoff(getTextApiUrl(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            return JSON.parse(result.candidates[0].content.parts[0].text);
+            const pairs = [['dead','alive'],['few','many'],['far','near'],['first','last'],['fast','slow'],['forward','back'],['front','back'],['happy','sad'],['good','bad'],['high','low'],['inside','outside'],['long','short'],['easy','difficult'],['light','dark'],['soft','hard'],['new','old'],['open','closed'],['up','down'],['top','bottom'],['right','wrong'],['rich','poor'],['same','different'],['dirty','clean'],['kind','mean'],['strong','weak'],['big','small'],['early','late'],['empty','full'],['thin','thick'],['under','over'],['young','old'],['hot','cold'],['wet','dry'],['left','right']];
+            const [adj1, adj2] = pairs[Math.floor(Math.random() * pairs.length)];
+            return callClaude(
+                "You are a creative assistant. Given two opposite adjectives, provide a concrete visualizable noun for each and a matching emoji. Provide only valid JSON.",
+                `The adjectives are '${adj1}' and '${adj2}'. For each, provide a concrete noun that best illustrates the adjective (e.g. big/elephant, small/mouse) and a matching emoji.`,
+                {
+                    type: "object",
+                    properties: {
+                        adj1: { type: "string", enum: [adj1] },
+                        noun1: { type: "string" },
+                        emoji1: { type: "string", description: "An emoji representing adj1/noun1" },
+                        adj2: { type: "string", enum: [adj2] },
+                        noun2: { type: "string" },
+                        emoji2: { type: "string", description: "An emoji representing adj2/noun2" }
+                    },
+                    required: ["adj1", "noun1", "emoji1", "adj2", "noun2", "emoji2"]
+                }
+            );
         }
 
         async function generateQuestionData() {
@@ -687,59 +712,83 @@
                 'a bathroom item', 'a sports equipment'
             ];
             const randomCategory = categories[Math.floor(Math.random() * categories.length)];
-
-            const systemPrompt = "You are a Norwegian (Nynorsk) language teacher. Generate simple questions/sentences that feature an Interrogative Pronoun (spørjeord) or a common request pattern. The sentence must involve a concrete physical object (noun) that can be visualized. Provide only JSON.";
-            const userQuery = `Generate a simple question in Nynorsk involving a concrete noun that is ${randomCategory}. Use question words like Kva, Kven, Kor (use 'Kor' instead of 'Kvar'), Korfor (use 'Korfor' instead of 'Kvifor'), Korleis, Når, Kva tid, or 'Kan eg få...'. Return: 1. 'nounEnglish': The concrete noun in English (for image generation). 2. 'nynorskFull': The full question in Nynorsk. 3. 'nynorskMasked': The same question but replace the object/noun with '[...]'. 4. 'englishFull': The English translation of the full question.`;
-            const payload = {
-                contents: [{ parts: [{ text: userQuery }] }],
-                systemInstruction: { parts: [{ text: systemPrompt }] },
-                generationConfig: { responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { "nounEnglish": { "type": "STRING" }, "nynorskFull": { "type": "STRING" }, "nynorskMasked": { "type": "STRING" }, "englishFull": { "type": "STRING" } }, required: ["nounEnglish", "nynorskFull", "nynorskMasked", "englishFull"] } }
-            };
-            const result = await fetchWithBackoff(getTextApiUrl(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            return JSON.parse(result.candidates[0].content.parts[0].text);
-        }
-
-        async function generateImage(prompt) {
-            const payload = { instances: [{ "prompt": prompt }], parameters: { "sampleCount": 1 } };
-            const result = await fetchWithBackoff(getImageApiUrl(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            if (!result.predictions?.[0]?.bytesBase64Encoded) throw new Error("No image");
-            return result.predictions[0].bytesBase64Encoded;
+            return callClaude(
+                "You are a Norwegian (Nynorsk) language teacher. Generate simple questions featuring an Interrogative Pronoun (spørjeord) or a common request pattern, involving a concrete physical object. Provide only valid JSON.",
+                `Generate a simple question in Nynorsk involving a concrete noun that is ${randomCategory}. Use question words like Kva, Kven, Kor (not 'Kvar'), Korfor (not 'Kvifor'), Korleis, Når, Kva tid, or 'Kan eg få...'. Return: nounEnglish (the noun in English), nynorskFull (the full question), nynorskMasked (same but replace the noun with '[...]'), englishFull (English translation), and a single emoji representing the noun.`,
+                {
+                    type: "object",
+                    properties: {
+                        nounEnglish: { type: "string" },
+                        nynorskFull: { type: "string" },
+                        nynorskMasked: { type: "string" },
+                        englishFull: { type: "string" },
+                        emoji: { type: "string", description: "A single emoji representing the noun" }
+                    },
+                    required: ["nounEnglish", "nynorskFull", "nynorskMasked", "englishFull", "emoji"]
+                }
+            );
         }
 
         async function translateNounVerb(noun, verb) {
-            const systemPrompt = "Translate English to Norwegian (Nynorsk). JSON only.";
-            const userQuery = `Translate: Noun '${noun}', Verb '${verb}'. Provide gender, noun forms (sg/pl, def/indef) and verb forms (inf, pres, past, perf).`;
-            const payload = {
-                contents: [{ parts: [{ text: userQuery }] }],
-                systemInstruction: { parts: [{ text: systemPrompt }] },
-                generationConfig: { responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { "nounSingularIndefinite": { "type": "STRING" }, "nounSingularDefinite": { "type": "STRING" }, "nounPluralIndefinite": { "type": "STRING" }, "nounPluralDefinite": { "type": "STRING" }, "nounGender": { "type": "STRING", "description": "Grammatical gender: 'masculine', 'feminine', or 'neuter'" }, "verbInfinitive": { "type": "STRING" }, "verbPresent": { "type": "STRING" }, "verbPast": { "type": "STRING" }, "verbPresentPerfect": { "type": "STRING" } }, required: ["nounSingularIndefinite", "nounSingularDefinite", "nounPluralIndefinite", "nounPluralDefinite", "nounGender", "verbInfinitive", "verbPresent", "verbPast", "verbPresentPerfect"] } }
-            };
-            const result = await fetchWithBackoff(getTextApiUrl(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            return JSON.parse(result.candidates[0].content.parts[0].text);
+            return callClaude(
+                "Translate English to Norwegian (Nynorsk). Provide only valid JSON.",
+                `Translate the noun '${noun}' and verb '${verb}' to Nynorsk. Provide: grammatical gender, all noun forms (singular/plural, definite/indefinite), and all verb forms (infinitive, present, past, present perfect).`,
+                {
+                    type: "object",
+                    properties: {
+                        nounSingularIndefinite: { type: "string" },
+                        nounSingularDefinite: { type: "string" },
+                        nounPluralIndefinite: { type: "string" },
+                        nounPluralDefinite: { type: "string" },
+                        nounGender: { type: "string", description: "Grammatical gender: 'masculine', 'feminine', or 'neuter'" },
+                        verbInfinitive: { type: "string" },
+                        verbPresent: { type: "string" },
+                        verbPast: { type: "string" },
+                        verbPresentPerfect: { type: "string" }
+                    },
+                    required: ["nounSingularIndefinite","nounSingularDefinite","nounPluralIndefinite","nounPluralDefinite","nounGender","verbInfinitive","verbPresent","verbPast","verbPresentPerfect"]
+                }
+            );
         }
 
         async function translateAdjectives(adj1, adj2) {
-            const systemPrompt = "Translate English adjectives to Norwegian (Nynorsk). JSON only.";
-            const userQuery = `Translate adjectives '${adj1}' and '${adj2}'. Provide all grammatical forms.`;
-            const payload = {
-                contents: [{ parts: [{ text: userQuery }] }],
-                systemInstruction: { parts: [{ text: systemPrompt }] },
-                generationConfig: { responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { "adj1": { "type": "OBJECT", "properties": { "base": { "type": "STRING" }, "mf": { "type": "STRING" }, "n": { "type": "STRING" }, "pl": { "type": "STRING" } } }, "adj2": { "type": "OBJECT", "properties": { "base": { "type": "STRING" }, "mf": { "type": "STRING" }, "n": { "type": "STRING" }, "pl": { "type": "STRING" } } } } } }
-            };
-            const result = await fetchWithBackoff(getTextApiUrl(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            return JSON.parse(result.candidates[0].content.parts[0].text);
+            return callClaude(
+                "Translate English adjectives to Norwegian (Nynorsk). Provide only valid JSON.",
+                `Translate the adjectives '${adj1}' and '${adj2}' to Nynorsk with all grammatical forms (base/dictionary form, masculine/feminine, neuter, plural).`,
+                {
+                    type: "object",
+                    properties: {
+                        adj1: {
+                            type: "object",
+                            properties: { base: { type: "string" }, mf: { type: "string" }, n: { type: "string" }, pl: { type: "string" } },
+                            required: ["base", "mf", "n", "pl"],
+                            additionalProperties: false
+                        },
+                        adj2: {
+                            type: "object",
+                            properties: { base: { type: "string" }, mf: { type: "string" }, n: { type: "string" }, pl: { type: "string" } },
+                            required: ["base", "mf", "n", "pl"],
+                            additionalProperties: false
+                        }
+                    },
+                    required: ["adj1", "adj2"]
+                }
+            );
         }
 
         async function generatePracticeSentence(word1, word2) {
-            const systemPrompt = "Generate a simple Nynorsk sentence. Use dialect forms 'Kor' (instead of 'Kvar') and 'Korfor' (instead of 'Kvifor') if creating questions. Provide English translation.";
-            const userQuery = `Make a sentence with '${word1}' or '${word2}' in Nynorsk.`;
-            const payload = {
-                contents: [{ parts: [{ text: userQuery }] }],
-                systemInstruction: { parts: [{ text: systemPrompt }] },
-                generationConfig: { responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { "nynorskSentence": { "type": "STRING" }, "englishTranslation": { "type": "STRING" } }, required: ["nynorskSentence", "englishTranslation"] } }
-            };
-            const result = await fetchWithBackoff(getTextApiUrl(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            return JSON.parse(result.candidates[0].content.parts[0].text);
+            return callClaude(
+                "Generate a simple Nynorsk sentence. Use dialect forms 'Kor' (not 'Kvar') and 'Korfor' (not 'Kvifor') if creating questions. Provide only valid JSON.",
+                `Make a simple sentence in Nynorsk using '${word1}' or '${word2}', with an English translation.`,
+                {
+                    type: "object",
+                    properties: {
+                        nynorskSentence: { type: "string" },
+                        englishTranslation: { type: "string" }
+                    },
+                    required: ["nynorskSentence", "englishTranslation"]
+                }
+            );
         }
 
         // --- Helper: UI Logic for Mode Switching ---
@@ -767,4 +816,81 @@
                 nounModeFront.classList.remove('hidden');
                 nounModeBack.classList.remove('hidden');
             } else if (mode === 'adj') {
-                modeAdjBtn.classList.add('bg-blue-100', 'text-blue-70
+                modeAdjBtn.classList.add('bg-blue-100', 'text-blue-700');
+                modeAdjBtn.classList.remove('text-gray-500', 'hover:bg-gray-50');
+                adjModeFront.classList.remove('hidden');
+                adjModeBack.classList.remove('hidden');
+            } else if (mode === 'question') {
+                modeQuestionBtn.classList.add('bg-blue-100', 'text-blue-700');
+                modeQuestionBtn.classList.remove('text-gray-500', 'hover:bg-gray-50');
+                questionModeFront.classList.remove('hidden');
+            }
+        }
+
+        // --- Event Listeners ---
+
+        // Mode Switchers
+        modeNounBtn.addEventListener('click', () => {
+            if (currentMode !== 'noun') {
+                currentMode = 'noun';
+                nextCardPromise = null;
+                preloadIndicator.classList.add('hidden');
+                startPreload('noun');
+            }
+        });
+
+        modeAdjBtn.addEventListener('click', () => {
+            if (currentMode !== 'adj') {
+                currentMode = 'adj';
+                nextCardPromise = null;
+                preloadIndicator.classList.add('hidden');
+                startPreload('adj');
+            }
+        });
+
+        modeQuestionBtn.addEventListener('click', () => {
+            if (currentMode !== 'question') {
+                currentMode = 'question';
+                nextCardPromise = null;
+                preloadIndicator.classList.add('hidden');
+                startPreload('question');
+            }
+        });
+
+        // Card Click (Flip)
+        card.addEventListener('click', () => {
+            if (!currentCardData.mode) return;
+            card.classList.toggle('is-flipped');
+        });
+
+        // New Card Button
+        newCardButton.addEventListener('click', onNextCardClick);
+
+        // Practice Sentence Button
+        practiceSentenceButton.addEventListener('click', async () => {
+            if (!currentCardData.mode || currentCardData.mode === 'question') return;
+            practiceSentenceButton.disabled = true;
+            sentenceButtonText.textContent = '...';
+            sentenceSpinner.classList.remove('hidden');
+            sentenceContainer.classList.add('hidden');
+            try {
+                const result = await generatePracticeSentence(currentCardData.w1, currentCardData.w2);
+                nynorskSentenceEl.textContent = result.nynorskSentence;
+                englishSentenceEl.textContent = result.englishTranslation;
+                sentenceContainer.classList.remove('hidden');
+            } catch (e) {
+                // Silently fail sentence generation
+            } finally {
+                practiceSentenceButton.disabled = false;
+                sentenceButtonText.textContent = '✨ Lag ei setning';
+                sentenceSpinner.classList.add('hidden');
+            }
+        });
+
+        // Show modal on start if no API key
+        if (!apiKey) {
+            showApiKeyModal();
+        }
+    </script>
+</body>
+</html>
