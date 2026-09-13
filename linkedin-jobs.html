@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkedIn Job Digest</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Identity Services (OAuth token client) -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .spinner {
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border-left-color: #007aff;
+            animation: spin 1s ease infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .badge {
+            display: inline-block;
+            font-size: 0.7rem;
+            line-height: 1rem;
+            padding: 0.1rem 0.5rem;
+            border-radius: 9999px;
+            background: #eff6ff;
+            color: #1d4ed8;
+            margin-right: 0.25rem;
+            margin-top: 0.25rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen p-4 pb-16">
+
+    <div class="max-w-3xl mx-auto">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800">LinkedIn Job Digest</h1>
+                <p class="text-sm text-gray-500">Summarizes the job-alert emails LinkedIn sends to your inbox.</p>
+            </div>
+            <button id="settings-button" class="text-gray-400 hover:text-gray-600 p-2" title="Setup">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Setup Modal -->
+        <div id="setup-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden p-4">
+            <div class="bg-white p-6 rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+                <h2 class="text-xl font-bold mb-2 text-gray-800">Setup: Google OAuth Client ID</h2>
+                <p class="text-gray-600 mb-4 text-sm">
+                    This page reads your Gmail directly from your browser — nothing is sent to a server.
+                    To do that it needs an OAuth Client ID that <em>you</em> create in your own Google Cloud
+                    project, scoped to read-only Gmail access on your own account.
+                </p>
+                <ol class="text-sm text-gray-600 list-decimal list-inside space-y-2 mb-4">
+                    <li>Open <a href="https://console.cloud.google.com/apis/library/gmail.googleapis.com" target="_blank" class="text-blue-600 hover:underline">Google Cloud Console → Gmail API</a> and click <strong>Enable</strong> (create a project first if you don't have one).</li>
+                    <li>Go to <a href="https://console.cloud.google.com/apis/credentials/consent" target="_blank" class="text-blue-600 hover:underline">OAuth consent screen</a>, choose <strong>External</strong>, and add yourself as a <strong>test user</strong> — testing mode is fine for personal use, no verification needed.</li>
+                    <li>Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="text-blue-600 hover:underline">Credentials</a> → <strong>Create Credentials → OAuth client ID</strong> → type <strong>Web application</strong>.</li>
+                    <li>Under <strong>Authorized JavaScript origins</strong>, add the exact origin you're opening this page from (e.g. <code class="bg-gray-100 px-1 rounded">http://localhost:8000</code> if served locally, or your GitHub Pages URL). <code class="bg-gray-100 px-1 rounded">file://</code> won't work — serve this file over http(s).</li>
+                    <li>Copy the generated <strong>Client ID</strong> and paste it below.</li>
+                </ol>
+                <input type="text" id="client-id-input" class="w-full border border-gray-300 p-2 rounded mb-3 focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm" placeholder="xxxxxxxx-xxxxxxxx.apps.googleusercontent.com">
+                <label class="block text-xs text-gray-500 mb-1 mt-2">Gmail search query</label>
+                <input type="text" id="query-input" class="w-full border border-gray-300 p-2 rounded mb-1 focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm">
+                <p class="text-xs text-gray-400 mb-4">Default matches LinkedIn's job-alert digest emails from the last 30 days.</p>
+                <button id="save-setup" class="w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700 transition-colors">Save</button>
+                <button id="close-setup-btn" class="mt-2 w-full text-xs text-gray-400 hover:text-gray-600">Close</button>
+            </div>
+        </div>
+
+        <!-- Connect / Fetch controls -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4 flex flex-wrap items-center gap-3">
+            <button id="connect-button" class="bg-gray-800 text-white text-sm font-semibold px-4 py-2 rounded hover:bg-gray-900 transition-colors">
+                Connect Gmail
+            </button>
+            <button id="fetch-button" class="bg-blue-600 text-white text-sm font-semibold px-4 py-2 rounded hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed" disabled>
+                Fetch &amp; Summarize
+            </button>
+            <span id="status-text" class="text-sm text-gray-500"></span>
+            <div id="progress-spinner" class="spinner hidden ml-1"></div>
+        </div>
+
+        <!-- Summary -->
+        <div id="summary-bar" class="hidden bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+            <div class="flex flex-wrap gap-6 text-sm">
+                <div><span id="stat-jobs" class="text-xl font-bold text-gray-800">0</span><br><span class="text-gray-500">unique jobs</span></div>
+                <div><span id="stat-emails" class="text-xl font-bold text-gray-800">0</span><br><span class="text-gray-500">alert emails scanned</span></div>
+                <div><span id="stat-companies" class="text-xl font-bold text-gray-800">0</span><br><span class="text-gray-500">companies</span></div>
+                <div><span id="stat-since" class="text-sm font-semibold text-gray-800">–</span><br><span class="text-gray-500">since</span></div>
+            </div>
+        </div>
+
+        <!-- Filter / Sort -->
+        <div id="controls-bar" class="hidden flex flex-wrap gap-3 mb-4">
+            <input id="filter-input" type="text" placeholder="Filter by title or company…" class="flex-1 min-w-[180px] border border-gray-300 p-2 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+            <select id="sort-select" class="border border-gray-300 p-2 rounded text-sm">
+                <option value="recent">Sort: most recent</option>
+                <option value="company">Sort: company (A–Z)</option>
+                <option value="title">Sort: title (A–Z)</option>
+            </select>
+        </div>
+
+        <!-- Job groups -->
+        <div id="results" class="space-y-6"></div>
+
+        <div id="empty-state" class="text-center text-gray-400 text-sm mt-16">
+            Connect your Gmail account, then click "Fetch &amp; Summarize" to see your LinkedIn job matches.
+        </div>
+    </div>
+
+    <script>
+        const SCOPE = 'https://www.googleapis.com/auth/gmail.readonly';
+        const DEFAULT_QUERY = 'from:jobalerts-noreply@linkedin.com newer_than:30d';
+
+        const el = (id) => document.getElementById(id);
+        const settingsButton = el('settings-button');
+        const setupModal = el('setup-modal');
+        const clientIdInput = el('client-id-input');
+        const queryInput = el('query-input');
+        const saveSetupBtn = el('save-setup');
+        const closeSetupBtn = el('close-setup-btn');
+        const connectButton = el('connect-button');
+        const fetchButton = el('fetch-button');
+        const statusText = el('status-text');
+        const progressSpinner = el('progress-spinner');
+        const summaryBar = el('summary-bar');
+        const controlsBar = el('controls-bar');
+        const resultsEl = el('results');
+        const emptyState = el('empty-state');
+        const filterInput = el('filter-input');
+        const sortSelect = el('sort-select');
+
+        let clientId = localStorage.getItem('li_jobs_client_id') || '';
+        let query = localStorage.getItem('li_jobs_query') || DEFAULT_QUERY;
+        let tokenClient = null;
+        let accessToken = sessionStorage.getItem('li_jobs_access_token') || null;
+        let allJobs = []; // deduped job objects
+        let emailsScanned = 0;
+
+        function showSetup() {
+            clientIdInput.value = clientId;
+            queryInput.value = query;
+            setupModal.classList.remove('hidden');
+        }
+        function hideSetup() { setupModal.classList.add('hidden'); }
+
+        settingsButton.addEventListener('click', showSetup);
+        closeSetupBtn.addEventListener('click', hideSetup);
+        saveSetupBtn.addEventListener('click', () => {
+            clientId = clientIdInput.value.trim();
+            query = queryInput.value.trim() || DEFAULT_QUERY;
+            localStorage.setItem('li_jobs_client_id', clientId);
+            localStorage.setItem('li_jobs_query', query);
+            hideSetup();
+            initTokenClientIfReady();
+        });
+
+        function setStatus(msg) { statusText.textContent = msg || ''; }
+
+        function initTokenClientIfReady() {
+            if (!clientId || typeof google === 'undefined' || !google.accounts) return;
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: clientId,
+                scope: SCOPE,
+                callback: (resp) => {
+                    if (resp.error) {
+                        setStatus('Auth failed: ' + resp.error);
+                        return;
+                    }
+                    accessToken = resp.access_token;
+                    sessionStorage.setItem('li_jobs_access_token', accessToken);
+                    setStatus('Connected.');
+                    fetchButton.disabled = false;
+                }
+            });
+            connectButton.disabled = false;
+        }
+
+        connectButton.addEventListener('click', () => {
+            if (!clientId) { showSetup(); return; }
+            if (!tokenClient) { initTokenClientIfReady(); }
+            if (tokenClient) tokenClient.requestAccessToken({ prompt: accessToken ? '' : 'consent' });
+        });
+
+        // If a token already exists from this browser session, allow fetching right away.
+        if (accessToken) fetchButton.disabled = false;
+
+        // Poll briefly for the GIS script to finish loading before wiring the token client.
+        let gisTries = 0;
+        const gisPoll = setInterval(() => {
+            gisTries++;
+            if (typeof google !== 'undefined' && google.accounts) {
+                clearInterval(gisPoll);
+                initTokenClientIfReady();
+            } else if (gisTries > 100) {
+                clearInterval(gisPoll);
+            }
+        }, 100);
+
+        async function gmailFetch(path, params) {
+            const url = new URL('https://gmail.googleapis.com/gmail/v1/users/me' + path);
+            Object.entries(params || {}).forEach(([k, v]) => url.searchParams.set(k, v));
+            const res = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
+            if (res.status === 401) {
+                sessionStorage.removeItem('li_jobs_access_token');
+                accessToken = null;
+                throw new Error('Your Gmail session expired — click Connect Gmail again.');
+            }
+            if (!res.ok) throw new Error('Gmail API error ' + res.status);
+            return res.json();
+        }
+
+        function base64UrlDecode(data) {
+            const b64 = data.replace(/-/g, '+').replace(/_/g, '/');
+            const decoded = atob(b64);
+            try {
+                return decodeURIComponent(escape(decoded));
+            } catch (e) {
+                return decoded;
+            }
+        }
+
+        function findPart(part, mimeType) {
+            if (!part) return null;
+            if (part.mimeType === mimeType && part.body && part.body.data) return part;
+            if (part.parts) {
+                for (const p of part.parts) {
+                    const found = findPart(p, mimeType);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+
+        function extractPlainText(payload) {
+            const plain = findPart(payload, 'text/plain');
+            if (plain) return base64UrlDecode(plain.body.data);
+            const html = findPart(payload, 'text/html');
+            if (html) {
+                const doc = new DOMParser().parseFromString(base64UrlDecode(html.body.data), 'text/html');
+                return doc.body ? doc.body.innerText : '';
+            }
+            return '';
+        }
+
+        function getHeader(headers, name) {
+            const h = (headers || []).find((h) => h.name.toLowerCase() === name.toLowerCase());
+            return h ? h.value : '';
+        }
+
+        // Parses one LinkedIn job-alert digest email body into individual job entries.
+        function parseDigest(text, subject) {
+            const jobs = [];
+            let searchTitle = null, searchLocation = null;
+
+            const headerMatch = text.match(/Your job alert for (.+?) in (.+?)\r?\n/);
+            if (headerMatch) {
+                searchTitle = headerMatch[1].trim();
+                searchLocation = headerMatch[2].trim();
+            } else {
+                const subjMatch = subject.match(/^[“"](.+?)[”"]/);
+                if (subjMatch) searchTitle = subjMatch[1].trim();
+            }
+            if (!searchTitle) searchTitle = 'LinkedIn job alert';
+
+            // Strip everything up through "N ... jobs match your preferences." if present.
+            const body = text.replace(/^[\s\S]*?jobs? match your preferences\.\s*\r?\n+/, '');
+
+            const chunks = body.split(/\r?\n\s*-{10,}\s*\r?\n+/);
+            for (const chunk of chunks) {
+                const lines = chunk.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+                if (lines.length === 0) continue;
+                if (/^See all jobs on LinkedIn/i.test(lines[0])) continue;
+                if (/^This email was intended for/i.test(lines[0])) continue;
+
+                const viewIdx = lines.findIndex((l) => /^View job:/i.test(l));
+                if (viewIdx === -1) continue;
+
+                const urlMatch = lines[viewIdx].match(/View job:\s*(\S+)/i);
+                const url = urlMatch ? urlMatch[1] : null;
+                const jobIdMatch = url && url.match(/jobs\/view\/(\d+)/);
+                const jobId = jobIdMatch ? jobIdMatch[1] : url;
+                if (!jobId) continue;
+
+                const infoLines = lines.slice(0, viewIdx);
+                const title = infoLines[0] || '(untitled)';
+                const company = infoLines[1] || '';
+                const location = infoLines[2] || '';
+                const badges = infoLines.slice(3);
+
+                jobs.push({ jobId, title, company, location, badges, url: url ? url.split('?')[0] : null, searchTitle, searchLocation });
+            }
+            return jobs;
+        }
+
+        async function fetchAndSummarize() {
+            if (!accessToken) { setStatus('Not connected.'); return; }
+            fetchButton.disabled = true;
+            connectButton.disabled = true;
+            progressSpinner.classList.remove('hidden');
+            resultsEl.innerHTML = '';
+            emptyState.classList.add('hidden');
+            allJobs = [];
+            emailsScanned = 0;
+            const jobMap = new Map();
+
+            try {
+                setStatus('Searching Gmail…');
+                let messages = [];
+                let pageToken = undefined;
+                do {
+                    const listResp = await gmailFetch('/messages', { q: query, maxResults: 25, ...(pageToken ? { pageToken } : {}) });
+                    messages = messages.concat(listResp.messages || []);
+                    pageToken = listResp.nextPageToken;
+                } while (pageToken && messages.length < 100);
+
+                if (messages.length === 0) {
+                    setStatus('No matching emails found.');
+                    emptyState.classList.remove('hidden');
+                    emptyState.textContent = 'No LinkedIn job-alert emails matched your query. Check the query in Setup, or that you have job alerts turned on in LinkedIn.';
+                    return;
+                }
+
+                for (let i = 0; i < messages.length; i++) {
+                    setStatus(`Fetching email ${i + 1} of ${messages.length}…`);
+                    const msg = await gmailFetch('/messages/' + messages[i].id, { format: 'full' });
+                    const subject = getHeader(msg.payload.headers, 'Subject');
+                    const dateHeader = getHeader(msg.payload.headers, 'Date');
+                    const date = dateHeader ? new Date(dateHeader) : new Date(Number(msg.internalDate));
+                    const text = extractPlainText(msg.payload);
+                    if (!text) continue;
+                    const jobs = parseDigest(text, subject);
+                    if (jobs.length === 0) continue;
+                    emailsScanned++;
+                    for (const job of jobs) {
+                        const existing = jobMap.get(job.jobId);
+                        if (existing) {
+                            existing.timesSeen++;
+                            if (date > existing.lastSeen) existing.lastSeen = date;
+                            if (date < existing.firstSeen) existing.firstSeen = date;
+                        } else {
+                            jobMap.set(job.jobId, { ...job, firstSeen: date, lastSeen: date, timesSeen: 1 });
+                        }
+                    }
+                }
+
+                allJobs = Array.from(jobMap.values());
+                render();
+                setStatus(`Done. Scanned ${emailsScanned} alert email(s).`);
+            } catch (err) {
+                console.error(err);
+                setStatus('Error: ' + err.message);
+            } finally {
+                fetchButton.disabled = false;
+                connectButton.disabled = false;
+                progressSpinner.classList.add('hidden');
+            }
+        }
+
+        fetchButton.addEventListener('click', fetchAndSummarize);
+        filterInput.addEventListener('input', render);
+        sortSelect.addEventListener('change', render);
+
+        function escapeHtml(s) {
+            return (s || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
+        function render() {
+            if (allJobs.length === 0) {
+                summaryBar.classList.add('hidden');
+                controlsBar.classList.add('hidden');
+                resultsEl.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            summaryBar.classList.remove('hidden');
+            controlsBar.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+
+            const companies = new Set(allJobs.map((j) => j.company).filter(Boolean));
+            const oldest = allJobs.reduce((min, j) => (j.firstSeen < min ? j.firstSeen : min), allJobs[0].firstSeen);
+            el('stat-jobs').textContent = allJobs.length;
+            el('stat-emails').textContent = emailsScanned;
+            el('stat-companies').textContent = companies.size;
+            el('stat-since').textContent = oldest.toLocaleDateString();
+
+            const filterText = filterInput.value.trim().toLowerCase();
+            let jobs = allJobs.filter((j) =>
+                !filterText || j.title.toLowerCase().includes(filterText) || j.company.toLowerCase().includes(filterText)
+            );
+
+            const sortMode = sortSelect.value;
+            jobs = jobs.slice().sort((a, b) => {
+                if (sortMode === 'company') return a.company.localeCompare(b.company);
+                if (sortMode === 'title') return a.title.localeCompare(b.title);
+                return b.lastSeen - a.lastSeen;
+            });
+
+            // Group by search alert (title + location)
+            const groups = new Map();
+            for (const j of jobs) {
+                const key = j.searchTitle + '|' + (j.searchLocation || '');
+                if (!groups.has(key)) groups.set(key, { title: j.searchTitle, location: j.searchLocation, jobs: [] });
+                groups.get(key).jobs.push(j);
+            }
+
+            resultsEl.innerHTML = '';
+            for (const group of groups.values()) {
+                const groupEl = document.createElement('div');
+                groupEl.className = 'bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden';
+                groupEl.innerHTML = `
+                    <div class="bg-gray-50 px-4 py-2 border-b border-gray-200 flex items-baseline justify-between">
+                        <h2 class="font-semibold text-gray-700">${escapeHtml(group.title)}${group.location ? ' · ' + escapeHtml(group.location) : ''}</h2>
+                        <span class="text-xs text-gray-400">${group.jobs.length} job${group.jobs.length === 1 ? '' : 's'}</span>
+                    </div>
+                    <div class="divide-y divide-gray-100"></div>
+                `;
+                const list = groupEl.querySelector('div.divide-y');
+                for (const job of group.jobs) {
+                    const row = document.createElement('a');
+                    row.href = job.url || '#';
+                    row.target = '_blank';
+                    row.rel = 'noopener';
+                    row.className = 'block px-4 py-3 hover:bg-gray-50 transition-colors';
+                    row.innerHTML = `
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <p class="font-medium text-gray-800">${escapeHtml(job.title)}</p>
+                                <p class="text-sm text-gray-500">${escapeHtml(job.company)}${job.location ? ' · ' + escapeHtml(job.location) : ''}</p>
+                                ${job.badges.length ? `<div>${job.badges.map((b) => `<span class="badge">${escapeHtml(b)}</span>`).join('')}</div>` : ''}
+                            </div>
+                            <div class="text-right shrink-0">
+                                <p class="text-xs text-gray-400">${job.timesSeen > 1 ? `seen ${job.timesSeen}×` : 'new'}</p>
+                                <p class="text-xs text-gray-400">${job.lastSeen.toLocaleDateString()}</p>
+                            </div>
+                        </div>
+                    `;
+                    list.appendChild(row);
+                }
+                resultsEl.appendChild(groupEl);
+            }
+        }
+
+        if (!clientId) {
+            emptyState.textContent = 'First-time setup: click the gear icon to add your Google OAuth Client ID.';
+        }
+    </script>
+</body>
+</html>
